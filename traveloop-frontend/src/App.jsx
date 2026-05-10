@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import AuthSystem from './components/AuthSystem';
 import Dashboard from './components/Dashboard';
 import CreateTrip from './components/CreateTrip';
@@ -12,13 +12,39 @@ import PublicItinerary from './components/PublicItinerary';
 import UserProfile from './components/UserProfile';
 import TripNotes from './components/TripNotes';
 import AdminDashboard from './components/AdminDashboard';
-import { LayoutDashboard, PlusCircle, Package, Notebook, User as UserIcon, ShieldAlert, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Package, Notebook, User as UserIcon, ShieldAlert, LogOut, Menu, X, Map, Search, Wallet, Share2 } from 'lucide-react';
 
 function App() {
   // role-based user state: { name: string, is_admin: boolean }
   const [user, setUser] = useState(null);
   const [activeScreen, setActiveScreen] = useState('DASHBOARD');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [currentTrip, setCurrentTrip] = useState({
+    name: 'Europe Summer Soul',
+    start_date: '2026-06-20',
+    end_date: '2026-07-05',
+    description: 'A multi-city summer plan with city stops, activities, notes, and budget tracking.',
+    total_budget: 240000,
+    is_public: true
+  });
+  const [selectedStopId, setSelectedStopId] = useState('stop-1');
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [stops, setStops] = useState([
+    {
+      id: 'stop-1',
+      city_name: 'Paris',
+      arrival: '2026-06-20',
+      departure: '2026-06-23',
+      activities: [
+        { id: 'act-1', name: 'Eiffel Tower Visit', time: '10:00 AM', cost: 2400 }
+      ]
+    }
+  ]);
+
+  const goTo = (screen) => {
+    setActiveScreen(screen);
+    setSidebarOpen(false);
+  };
 
   const handleLogin = (userData) => {
     // userData should contain is_admin from Table 1
@@ -26,14 +52,88 @@ function App() {
     setActiveScreen('DASHBOARD');
   };
 
+  const addActivityToStop = useCallback((activity, stopId) => {
+    const targetStopId = stopId || selectedStopId || stops[0]?.id;
+    if (!targetStopId) return;
+
+    setStops((prevStops) =>
+      prevStops.map((stop) =>
+        stop.id === targetStopId
+          ? {
+              ...stop,
+              activities: [
+                ...stop.activities,
+                {
+                  id: `${activity.id}-${Date.now()}`,
+                  name: activity.name,
+                  time: activity.time || '09:00 AM',
+                  cost: activity.cost,
+                  category: activity.category
+                }
+              ]
+            }
+          : stop
+      )
+    );
+  }, [selectedStopId, stops]);
+
+  const addStopToTrip = useCallback((city, dates = {}) => {
+    const arrival = dates.arrival || currentTrip.start_date;
+    const departure = dates.departure || currentTrip.start_date;
+
+    if (arrival < currentTrip.start_date || departure > currentTrip.end_date || departure < arrival) {
+      return { ok: false, error: `Stop dates must be between ${currentTrip.start_date} and ${currentTrip.end_date}.` };
+    }
+
+    const existing = stops.find((stop) => stop.city_id === city.id || stop.city_name.toLowerCase() === city.name.toLowerCase());
+    if (existing) {
+      setSelectedStopId(existing.id);
+      setSelectedCity(city);
+      return { ok: true, stopId: existing.id };
+    }
+
+    const newStop = {
+      id: `stop-${Date.now()}`,
+      city_id: city.id,
+      city_name: city.name,
+      country: city.country,
+      arrival,
+      departure,
+      activities: []
+    };
+
+    setStops((prevStops) => [...prevStops, newStop]);
+    setSelectedStopId(newStop.id);
+    setSelectedCity(city);
+    return { ok: true, stopId: newStop.id };
+  }, [currentTrip.end_date, currentTrip.start_date, stops]);
+
   const navItems = [
     { id: 'DASHBOARD', label: 'My Dashboard', icon: LayoutDashboard, adminOnly: false },
+    { id: 'TRIPS', label: 'My Trips', icon: Map, adminOnly: false },
     { id: 'CREATE_TRIP', label: 'Plan New Trip', icon: PlusCircle, adminOnly: false },
+    { id: 'CITY_SEARCH', label: 'Explore Cities', icon: Search, adminOnly: false },
+    { id: 'BUDGET', label: 'Trip Budget', icon: Wallet, adminOnly: false },
     { id: 'PACKING', label: 'Packing List', icon: Package, adminOnly: false },
     { id: 'NOTES', label: 'Trip Journal', icon: Notebook, adminOnly: false },
+    { id: 'PUBLIC', label: 'Public Share', icon: Share2, adminOnly: false },
     { id: 'PROFILE', label: 'My Settings', icon: UserIcon, adminOnly: false },
     { id: 'ADMIN', label: 'Platform Admin', icon: ShieldAlert, adminOnly: true },
   ];
+
+  const appActions = useMemo(() => ({
+    goTo,
+    setCurrentTrip,
+    currentTrip,
+    stops,
+    setStops,
+    selectedStopId,
+    setSelectedStopId,
+    selectedCity,
+    setSelectedCity,
+    addActivityToStop,
+    addStopToTrip
+  }), [addActivityToStop, addStopToTrip, currentTrip, selectedCity, selectedStopId, stops]);
 
   if (!user) {
     return <AuthSystem onLogin={handleLogin} />;
@@ -41,13 +141,14 @@ function App() {
 
   const renderActiveScreen = () => {
     switch (activeScreen) {
-      case 'DASHBOARD': return <Dashboard />;
-      case 'CREATE_TRIP': return <CreateTrip />;
-      case 'BUILDER': return <ItineraryBuilder />;
-      case 'VIEW': return <ItineraryView />;
-      case 'CITY_SEARCH': return <CitySearch />;
-      case 'ACT_SEARCH': return <ActivitySearch />;
-      case 'BUDGET': return <BudgetScreen />;
+      case 'DASHBOARD': return <Dashboard {...appActions} user={user} />;
+      case 'TRIPS': return <Dashboard {...appActions} user={user} mode="trips" />;
+      case 'CREATE_TRIP': return <CreateTrip {...appActions} />;
+      case 'BUILDER': return <ItineraryBuilder {...appActions} />;
+      case 'VIEW': return <ItineraryView {...appActions} />;
+      case 'CITY_SEARCH': return <CitySearch {...appActions} />;
+      case 'ACT_SEARCH': return <ActivitySearch {...appActions} />;
+      case 'BUDGET': return <BudgetScreen {...appActions} />;
       case 'PACKING': return <PackingChecklist />;
       case 'PUBLIC': return <PublicItinerary />;
       case 'PROFILE': return <UserProfile />;
@@ -82,7 +183,7 @@ function App() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => { setActiveScreen(item.id); setSidebarOpen(false); }}
+                  onClick={() => goTo(item.id)}
                   className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-bold text-sm transition-all duration-200
                     ${isActive 
                       ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 translate-x-1' 

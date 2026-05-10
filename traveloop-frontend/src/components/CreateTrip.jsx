@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Calendar as CalendarIcon, Map, ChevronRight, Info, Edit2 } from 'lucide-react';
 
-const CreateTrip = () => {
+const CreateTrip = ({ goTo, setCurrentTrip }) => {
   const [step, setStep] = useState(1);
   const [dateMode, setDateMode] = useState({ start: 'picker', end: 'picker' });
+  const [errors, setErrors] = useState({});
   const [tripData, setTripData] = useState({
     name: '',
     start_date: '',
@@ -21,6 +22,45 @@ const CreateTrip = () => {
       ...prev,
       [field]: prev[field] === 'picker' ? 'manual' : 'picker'
     }));
+  };
+
+  const validateStep = (targetStep = step) => {
+    const nextErrors = {};
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (!tripData.name.trim()) nextErrors.name = 'Trip name is required.';
+    if (tripData.name.trim().length > 60) nextErrors.name = 'Keep the trip name under 60 characters.';
+    if (!tripData.start_date) nextErrors.start_date = 'Start date is required.';
+    if (!tripData.end_date) nextErrors.end_date = 'End date is required.';
+    if (tripData.start_date && tripData.start_date < today) nextErrors.start_date = 'Start date cannot be in the past.';
+    if (tripData.start_date && tripData.end_date && tripData.end_date < tripData.start_date) {
+      nextErrors.end_date = 'End date must be after the start date.';
+    }
+
+    if (targetStep >= 2) {
+      if (!tripData.description.trim()) nextErrors.description = 'Add a short trip description.';
+      if (tripData.description.trim().length > 280) nextErrors.description = 'Description must be 280 characters or less.';
+      if (tripData.total_budget && Number(tripData.total_budget) < 0) nextErrors.total_budget = 'Budget cannot be negative.';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateStep(1)) setStep(2);
+  };
+
+  const handleCreateTrip = () => {
+    if (!validateStep(2)) return;
+
+    setCurrentTrip({
+      ...tripData,
+      name: tripData.name.trim(),
+      description: tripData.description.trim(),
+      total_budget: Number(tripData.total_budget) || 0
+    });
+    goTo('BUILDER');
   };
 
   return (
@@ -48,8 +88,11 @@ const CreateTrip = () => {
                   type="text" 
                   placeholder="e.g. Europe Soul Searching" 
                   className={inputClass} 
+                  maxLength={60}
+                  value={tripData.name}
                   onChange={(e) => setTripData({...tripData, name: e.target.value})}
                 />
+                {errors.name && <p className="mt-2 text-xs font-bold text-red-500">{errors.name}</p>}
               </div>
 
               {/* Start Date Selection */}
@@ -66,9 +109,11 @@ const CreateTrip = () => {
                     type={dateMode.start === 'picker' ? "date" : "text"} 
                     placeholder={dateMode.start === 'manual' ? "YYYY-MM-DD" : ""}
                     className={`${inputClass} pl-12`}
+                    value={tripData.start_date}
                     onChange={(e) => setTripData({...tripData, start_date: e.target.value})}
                   />
                 </div>
+                {errors.start_date && <p className="mt-2 text-xs font-bold text-red-500">{errors.start_date}</p>}
               </div>
 
               {/* End Date Selection */}
@@ -85,12 +130,14 @@ const CreateTrip = () => {
                     type={dateMode.end === 'picker' ? "date" : "text"} 
                     placeholder={dateMode.end === 'manual' ? "YYYY-MM-DD" : ""}
                     className={`${inputClass} pl-12`}
+                    value={tripData.end_date}
                     onChange={(e) => setTripData({...tripData, end_date: e.target.value})}
                   />
                 </div>
+                {errors.end_date && <p className="mt-2 text-xs font-bold text-red-500">{errors.end_date}</p>}
               </div>
 
-              <button onClick={() => setStep(2)} className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl flex items-center justify-center gap-2 hover:bg-black transition-all transform hover:-translate-y-1 shadow-lg shadow-slate-200">
+              <button onClick={handleNext} className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl flex items-center justify-center gap-2 hover:bg-black transition-all transform hover:-translate-y-1 shadow-lg shadow-slate-200">
                 Next Details <ChevronRight size={18}/>
               </button>
             </div>
@@ -102,8 +149,24 @@ const CreateTrip = () => {
                   rows="3" 
                   className={inputClass + " resize-none"} 
                   placeholder="What's the vibe of this trip?" 
+                  maxLength={280}
+                  value={tripData.description}
                   onChange={(e) => setTripData({...tripData, description: e.target.value})}
                 ></textarea>
+                {errors.description && <p className="mt-2 text-xs font-bold text-red-500">{errors.description}</p>}
+              </div>
+
+              <div>
+                <label className={labelClass}>Total Budget</label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="e.g. 240000"
+                  className={inputClass}
+                  value={tripData.total_budget}
+                  onChange={(e) => setTripData({...tripData, total_budget: e.target.value})}
+                />
+                {errors.total_budget && <p className="mt-2 text-xs font-bold text-red-500">{errors.total_budget}</p>}
               </div>
 
               {/* Public Toggle - Table: trips.is_public */}
@@ -124,7 +187,7 @@ const CreateTrip = () => {
 
               <div className="flex gap-4">
                 <button onClick={() => setStep(1)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl transition hover:bg-slate-200">Back</button>
-                <button onClick={() => console.log("Insert into Table: trips", tripData)} className="flex-[2] py-4 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-200 transition transform hover:-translate-y-1 active:scale-95">
+                <button onClick={handleCreateTrip} className="flex-[2] py-4 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-200 transition transform hover:-translate-y-1 active:scale-95">
                   Create Trip & Add Stops
                 </button>
               </div>

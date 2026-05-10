@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { StickyNote, Plus, MapPin, Calendar, Search, Edit3, Trash2, MoreVertical, AlignLeft } from 'lucide-react';
 
 const TripNotes = () => {
   // Aligned with Table 9: trip_notes
-  const [notes, setNotes] = useState([
+  const [notes] = useState([
     { 
       id: 1, 
       title: 'Hotel Check-in Info', 

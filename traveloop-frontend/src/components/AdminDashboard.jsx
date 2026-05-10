@@ -1,5 +1,4 @@
-import React from 'react';
-import { BarChart3, Users, Map, Activity, TrendingUp, ArrowUpRight, Globe, ShieldCheck } from 'lucide-react';
+import { Users, Map, TrendingUp, ArrowUpRight, Globe, ShieldCheck } from 'lucide-react';
 
 const AdminDashboard = () => {
   // Data mapped from Admin Views: top_cities, top_activities, and user_engagement

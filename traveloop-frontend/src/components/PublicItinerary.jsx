@@ -1,5 +1,4 @@
-import React from 'react';
-import { Copy, Share2, Globe, MapPin, Calendar, Heart, ArrowRight, User, ExternalLink } from 'lucide-react';
+import { Copy, Share2, Globe, MapPin, Calendar, Heart, ExternalLink } from 'lucide-react';
 
 const PublicItinerary = () => {
   // Data derived from Table 3 (trips) and Table 4 (trip_stops)
@@ -58,7 +57,7 @@ const PublicItinerary = () => {
             </div>
             <div className="text-center">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Budget</p>
-              <p className="text-2xl font-black text-slate-900">$$$</p>
+              <p className="text-2xl font-black text-slate-900">₹₹₹</p>
             </div>
           </div>
 

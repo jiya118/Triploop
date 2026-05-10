@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { User, Mail, Globe, Bell, Shield, LogOut, Trash2, MapPin, Camera, ChevronRight, Bookmark } from 'lucide-react';
+import { useState } from 'react';
+import { User, Globe, Shield, LogOut, Trash2, Camera, ChevronRight, Bookmark } from 'lucide-react';
 
 const UserProfile = () => {
   // Aligned with Table 1 (users) and Table 10 (saved_destinations)
-  const [profile, setProfile] = useState({
+  const [profile] = useState({
     name: 'Riddhi Thakkar',
     email: 'riddhi@traveloop.com',
     language: 'en',

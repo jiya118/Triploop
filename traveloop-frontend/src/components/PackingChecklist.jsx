@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CheckCircle2, Circle, Plus, Trash2, Smartphone, FileText, Shirt, Briefcase, MoreHorizontal } from 'lucide-react';
 
 const PackingChecklist = () => {
@@ -9,6 +9,8 @@ const PackingChecklist = () => {
     { id: 3, name: 'Cotton T-shirts', category: 'clothing', is_packed: false },
     { id: 4, name: 'Sunscreen', category: 'toiletries', is_packed: true },
   ]);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState('other');
 
   const categories = [
     { id: 'clothing', icon: Shirt, label: 'Clothing' },
@@ -21,6 +23,31 @@ const PackingChecklist = () => {
     setItems(items.map(item => 
       item.id === id ? { ...item, is_packed: !item.is_packed } : item
     ));
+  };
+
+  const addItem = (e) => {
+    e.preventDefault();
+    const name = newItemName.trim();
+    if (!name) return;
+
+    setItems([
+      ...items,
+      {
+        id: Date.now(),
+        name,
+        category: newItemCategory,
+        is_packed: false
+      }
+    ]);
+    setNewItemName('');
+  };
+
+  const removeItem = (id) => {
+    setItems(items.filter((item) => item.id !== id));
+  };
+
+  const resetChecklist = () => {
+    setItems(items.map((item) => ({ ...item, is_packed: false })));
   };
 
   return (
@@ -43,16 +70,29 @@ const PackingChecklist = () => {
 
       <main className="max-w-4xl mx-auto px-6 space-y-10">
         {/* Add Item Input */}
-        <div className="bg-white p-2 rounded-[2rem] shadow-sm border border-slate-100 flex gap-2">
+        <form onSubmit={addItem} className="bg-white p-2 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-2">
           <input 
             type="text" 
             placeholder="Add new item (e.g. Universal Adapter)" 
             className="flex-1 bg-transparent px-6 py-3 outline-none font-medium text-slate-700"
+            value={newItemName}
+            onChange={(e) => setNewItemName(e.target.value)}
           />
-          <button className="bg-blue-600 text-white px-8 py-3 rounded-[1.5rem] font-black hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-100">
+          <select
+            value={newItemCategory}
+            onChange={(e) => setNewItemCategory(e.target.value)}
+            className="bg-slate-50 px-4 py-3 rounded-[1.5rem] font-bold text-slate-600 outline-none border border-slate-100"
+          >
+            <option value="clothing">Clothing</option>
+            <option value="electronics">Electronics</option>
+            <option value="documents">Documents</option>
+            <option value="toiletries">Toiletries</option>
+            <option value="other">Other</option>
+          </select>
+          <button type="submit" className="bg-blue-600 text-white px-8 py-3 rounded-[1.5rem] font-black hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg shadow-blue-100">
             <Plus size={20} /> Add
           </button>
-        </div>
+        </form>
 
         {/* Category Sections - Aligned with packing_category ENUM */}
         {categories.map((cat) => {
@@ -84,7 +124,14 @@ const PackingChecklist = () => {
                         {item.name}
                       </span>
                     </div>
-                    <button className="p-2 text-slate-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeItem(item.id);
+                      }}
+                      className="p-2 text-slate-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100"
+                      aria-label={`Remove ${item.name}`}
+                    >
                       <Trash2 size={18} />
                     </button>
                   </div>
@@ -96,7 +143,7 @@ const PackingChecklist = () => {
 
         {/* Reset Action - Screen 10 requirement */}
         <div className="pt-8 flex justify-center">
-          <button className="text-xs font-black text-slate-400 hover:text-blue-600 flex items-center gap-2 transition uppercase tracking-widest">
+          <button onClick={resetChecklist} className="text-xs font-black text-slate-400 hover:text-blue-600 flex items-center gap-2 transition uppercase tracking-widest">
             <MoreHorizontal size={16} /> Reset Checklist for Next Trip
           </button>
         </div>
